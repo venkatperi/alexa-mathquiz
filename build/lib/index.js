@@ -1,42 +1,80 @@
-var App, app, facts, randomFact, s;
+var App, Quiz, app, prompt, s, setSize, validate;
 
-App = require("alexa-express");
-
-facts = require('./facts');
+App = require("alexa-express").App;
 
 s = require('./strings');
+
+Quiz = require('./Quiz');
 
 app = new App();
 
 app.use(function(req, res, next) {
-  console.log("" + (req["new"] ? 'new session:' : void 0) + " requestId: " + req.requestId + ", sessionId: " + req.sessionId);
-  console.log("url: " + req.url);
+  new Quiz(req, res);
   return next();
 });
 
-app.use("/intent/getNewFact", function(req, res, next) {
-  return res.tell(s.fact(randomFact()));
+app.use('/intent/amazon/startOver', function(req, res, next) {
+  req.context.clear();
+  return res.ask(s.type({
+    prefix: s.ok()
+  }));
 });
 
-app.use("/intent/amazon/help", function(req, res, next) {
-  return res.ask(s.help());
+app.use('/intent/setType', function(req, res, next) {
+  var ctx;
+  ctx = req.context;
+  req.context.type(req.slot('Type'));
+  return res.ask(s.size({
+    prefix: "" + (s.ok()) + ", " + (ctx.type()) + "."
+  }));
 });
 
-app.use("/intent/amazon/stop", function(req, res, next) {
-  return res.tell(s.goodbye());
-});
+setSize = function(req, res, next) {
+  req.context.size(req.slot('Size'));
+  req.context.start();
+  return next();
+};
 
-app.use("/intent/amazon/cancel", function(req, res, next) {
-  return res.tell(s.goodbye());
-});
+validate = function(req, res, next) {
+  req.context.validate(req.slot('Answer'));
+  return next();
+};
 
-app.use(function(req, res, next, err) {
+prompt = function(req, res, next) {
+  var ctx, out, q;
+  ctx = req.context;
+  out = [];
+  if (ctx.current() === 1) {
+    out.push(s.start({
+      count: ctx.count()
+    }));
+  } else {
+    q = ctx.valid() ? s.correct : s.incorrect;
+    out.push(q({
+      answer: ctx.prevAnswer()
+    }));
+  }
+  if (ctx.finished()) {
+    out.push(s.done({
+      score: ctx.score(),
+      count: ctx.count()
+    }));
+  } else {
+    out.push(s.question({
+      current: ctx.current(),
+      q: ctx.question()
+    }));
+  }
+  return res.ask(out.join(' '));
+};
+
+app.use('/intent/setSize', setSize, prompt);
+
+app.use('/intent/answer', validate, prompt);
+
+app.use(function(err, req, res, next) {
   console.log(err);
   return res.tell(err);
 });
-
-randomFact = function() {
-  return facts[Math.floor(Math.random() * facts.length)];
-};
 
 module.exports = app.handler;
