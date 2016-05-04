@@ -3,18 +3,18 @@ _ = require './util/string'
 Provider = require './provider'
 
 fields =
-  started : ( v ) -> v
-  finished : ( v ) -> v
-  score : ( v ) -> v
-  valid : ( v ) -> v
-  current : ( v ) -> v
-  questions : ( v ) -> v
-  question : ( v ) -> v
-  answer : ( v ) -> v
-  prevAnswer : ( v ) -> v
-  count : ( v ) -> v
+  started : undefined
+  finished : undefined
+  score : undefined
+  valid : undefined
+  current : undefined
+  questions : undefined
+  question : undefined
+  answer : undefined
+  prevAnswer : undefined
+  count : undefined
   type : ( v ) -> if v? then _.capitalize( v.toLowerCase() ) else v
-  size : ( v ) -> v?.toLowerCase()
+  size : (v) -> v?.toLowerCase()
 
 sizes =
   small : 20
@@ -64,7 +64,7 @@ module.exports = class Quiz extends SessionContext
     if c <= count
       @current c
     else
-      @finished true  
+      @finished true
 
   onCurrentChanged : ( value ) =>
     return unless @provider?
